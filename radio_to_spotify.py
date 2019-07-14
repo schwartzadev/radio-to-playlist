@@ -12,8 +12,17 @@ You need a Deezer API access token: https://developers.deezer.com/api/oauth
 
 """
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
+def load_config():
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+    except FileNotFoundError:
+        print('config.json does not exist. create a config file from the instructions in the README.\nquitting...')
+        quit(1)
+    return config
+
+
+config = load_config()
 
 
 response = requests.get(config['deezer_base_url'] + '/music/recently-played/')
