@@ -5,11 +5,7 @@ from bs4 import BeautifulSoup
 """
 07/11/19
 Andrew Schwartz
-Saves an I Heart Radio station's latest played tracks to a Deezer playlist
-
-You need a Deezer API access token: https://developers.deezer.com/api/oauth
-..with the manage_library permission
-
+Saves an iHeartRadio station's latest played tracks to a Deezer playlist
 """
 
 def load_config():
