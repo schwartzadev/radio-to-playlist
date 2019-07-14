@@ -20,9 +20,10 @@ def load_config():
     return config
 
 
-def add_song(song_id):
+def add_songs(song_id):
     """
-    add a song to the playlist
+    song_id: a string of comma separated song ids
+    add a list of songs to the playlist
     """
     querystring = {"songs": song_id, "access_token": config['deezer_access_token']}
     r = requests.request(
@@ -55,14 +56,17 @@ def get_deezer_song_id(query):
 def add_tracks_to_playlist(tracks_list):
     total_tracks = len(tracks_list)
     count = 1
+    song_ids = []
     for t in tracks_list:
         try:
             song_id = get_deezer_song_id(t)
-            add_song(song_id)
+            song_ids.append(song_id)
             print('[' + str(count) + '/' + str(total_tracks) + ']', 'added', t, song_id)
         except:
-            print('[' + str(count) + '/' + str(total_tracks) + ']', 'error for', t, song_id)
+            print('[' + str(count) + '/' + str(total_tracks) + ']', 'could not find', t, song_id)
         count = count + 1
+    song_ids_as_string = ','.join(str(sid) for sid in song_ids)
+    add_songs(song_ids_as_string)
 
 
 config = load_config()
