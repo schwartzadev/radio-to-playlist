@@ -2,6 +2,8 @@ import requests
 import json
 from bs4 import BeautifulSoup
 
+from get_radio_tracks import get_tracks
+
 """
 07/11/19
 Andrew Schwartz
@@ -19,61 +21,6 @@ def load_config():
 
 
 config = load_config()
-
-
-response = requests.get(config['deezer_base_url'] + '/music/recently-played/')
-soup = BeautifulSoup(response.text, 'html.parser')
-
-
-def get_tracks_from_soup(soup):
-    """
-    returns a 2d list of track information from an iheartradio soup in the format:
-    [
-        ...
-        [track_name, track_artist],
-        ...
-    ]
-    """
-    tracks_list = []
-    figcaptions = soup.find_all('figcaption')
-
-    for track in figcaptions:
-        song_info = [a.text for a in track.find_all('a')]
-        tracks_list.append(song_info)
-
-    return tracks_list
-
-
-def get_load_more_param_from_soup(soup):
-    """
-    gets the parameter that lies on the current page and points to the next page of tracks
-    this only works for the initial page (not subsequent pages -- see the get_tracks_from_load_more method)
-    """
-    a = soup.find('a', {'class': 'station-custom-button large load-more'})
-    link = config['deezer_base_url'] + a['href']
-    return link.split('?load_more=')[1] # return the part of the string after '?load_more='
-
-
-def get_tracks_from_load_more(load_more_param):
-    """
-    returns the tracks and the next page parameter, given the current page parameter
-    this only works for pages that are NOT the initial page
-    """
-    params = (
-        ('load_more', load_more_param),
-        ('viewname', 'undefined'),
-        ('limit', '10'),
-        ('requestCount', 1),
-    )
-
-    response = requests.get(config['deezer_base_url'] + '/music/recently-played/', params=params)
-
-    soup = BeautifulSoup(response.text, 'html.parser')
-    tracks = get_tracks_from_soup(soup)
-
-    next_page = soup.find('li', {'class': 'playlist-track-container ondemand-track'})['data-loadmoreurl']
-    
-    return tracks, next_page.split('?load_more=')[1]
 
 
 def add_song(song_id):
@@ -100,7 +47,7 @@ def get_deezer_song_id(query):
     params = (
         ('q', query),
         ('order', 'RANKING'),
-        ('access_token', ACCESS_TOKEN),
+        ('access_token', config['deezer_access_token']),
     )
     r = requests.get('https://api.deezer.com/search', params=params)
     
@@ -110,7 +57,7 @@ def get_deezer_song_id(query):
 
 
 def add_tracks_to_playlist(tracks_list):
-    total_tracks = len(tracks_list) + 1 # 1 indexed for the count
+    total_tracks = len(tracks_list)
     count = 1
     for t in tracks_list:
         try:
@@ -122,29 +69,7 @@ def add_tracks_to_playlist(tracks_list):
         count = count + 1
 
 
-ALL_TRACKS = None
-
-# set up initial page
-ALL_TRACKS = get_tracks_from_soup(soup)
-next_page = get_load_more_param_from_soup(soup)
-
-
-# run additional pages
-for x in range(1, 172):
-    print('page', x + 1)
-    tracks, next_page = get_tracks_from_load_more(next_page)
-    ALL_TRACKS = ALL_TRACKS + tracks
-
-flattened_tracks = [t[0] + ' ' + t[1] for t in ALL_TRACKS]
-
-print(flattened_tracks)
-print(len(flattened_tracks), 'total')
-flattened_tracks = list(set(flattened_tracks)) # rm duplicates
-print(len(flattened_tracks), 'unique')
-
-
-import pdb
-pdb.set_trace()
+flattened_tracks = get_tracks(config['deezer_base_url'], 2)
 
 # add to Deezer
 add_tracks_to_playlist(flattened_tracks)
