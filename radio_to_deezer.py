@@ -20,9 +20,6 @@ def load_config():
     return config
 
 
-config = load_config()
-
-
 def add_song(song_id):
     """
     add a song to the playlist
@@ -55,7 +52,6 @@ def get_deezer_song_id(query):
     return song_id
 
 
-
 def add_tracks_to_playlist(tracks_list):
     total_tracks = len(tracks_list)
     count = 1
@@ -69,7 +65,8 @@ def add_tracks_to_playlist(tracks_list):
         count = count + 1
 
 
+config = load_config()
+
 flattened_tracks = get_tracks(config['deezer_base_url'], 2)
 
-# add to Deezer
 add_tracks_to_playlist(flattened_tracks)
