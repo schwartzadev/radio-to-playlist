@@ -2,6 +2,9 @@ import requests
 import json
 from bs4 import BeautifulSoup
 
+import aiohttp
+import asyncio
+
 from get_radio_tracks import get_tracks
 
 """
@@ -110,33 +113,38 @@ def add_songs(song_id):
         return False
 
 
-def get_deezer_song_id(query):
-    """
-    call the Deezer API to search for the track, returning the highest rank result
-    """
+async def fetch(session, query, song_ids):
     params = (
         ('q', query),
         ('order', 'RANKING'),
         ('access_token', access_token),
     )
-    r = requests.get('https://api.deezer.com/search', params=params)
-    
-    song_id = json.loads(r.text)['data'][0]['id']
-    return song_id
+    async with session.get('https://api.deezer.com/search', params=params) as response:
+        content = await response.text()
+        try:
+            song_id = json.loads(content)['data'][0]['id']
+            song_ids.append(song_id)
+        except IndexError: # search returned no results
+            # todo handle errors via status codes
+            print('could not find', query, 'on Deezer - skipping...')
+
+
+async def main(track_names, song_ids):
+    async with aiohttp.ClientSession() as session:
+        tasks = [asyncio.create_task(fetch(session, name, song_ids)) for name in track_names]
+        await asyncio.gather(*tasks)
+
+
+def get_all_deezer_song_ids(track_names):
+    print('getting', len(track_names), 'deezer song ids...')
+    song_ids = []
+    asyncio.run(main(track_names, song_ids))
+    return song_ids
 
 
 def add_tracks_to_playlist(tracks_list):
-    total_tracks = len(tracks_list)
-    count = 1
-    song_ids = []
-    for t in tracks_list:
-        try:
-            song_id = get_deezer_song_id(t)
-            song_ids.append(song_id)
-            print('[' + str(count) + '/' + str(total_tracks) + ']', 'added', t, song_id)
-        except:
-            print('[' + str(count) + '/' + str(total_tracks) + ']', 'could not find', t, song_id)
-        count = count + 1
+    song_ids = get_all_deezer_song_ids(tracks_list)
+
     song_ids_as_string = ','.join(str(sid) for sid in song_ids)
     add_songs(song_ids_as_string)
 
